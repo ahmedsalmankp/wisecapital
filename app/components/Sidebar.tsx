@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -30,8 +31,15 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   const sidebarContent = (
     <>
-      <div className="flex h-16 items-center justify-between border-b border-green-300 px-4">
-        <h1 className="text-xl font-bold text-gray-800">Wise Capital</h1>
+      <div className="flex h-16 items-center  border-b border-green-300 px-4">
+        <Image
+          src="/wisecapital-logo.png"
+          alt="Wise Capital"
+          width={120}
+          height={40}
+          className="h-10 w-auto object-contain mr-3"
+        />
+        <h1 className="text-xl font-bold text-green-800">WISECAPITAL</h1>
         {onClose && (
           <button
             onClick={onClose}

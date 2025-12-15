@@ -44,7 +44,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           href="/dashboard/profile"
           className="flex lg:hidden items-center gap-2 bg-gray-100 px-2 py-1 hover:bg-gray-200 transition-colors cursor-pointer"
         >
-          <div className="flex h-7 w-7 items-center justify-center bg-blue-600 text-white">
+          <div className="flex h-7 w-7 items-center justify-center bg-green-600 text-white">
             <User className="h-3.5 w-3.5" />
           </div>
         </Link>

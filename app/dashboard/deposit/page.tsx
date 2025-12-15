@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContext';
 import { MessageCircle, Copy, Upload, ArrowUpCircle } from 'lucide-react';
 
@@ -142,27 +143,46 @@ export default function Deposit() {
           </h2>
         </div>
 
+        {/* Payment QR */}
+        <div className="mb-6 grid gap-4 md:grid-cols-[auto,1fr] md:items-center">
+          <div className="flex flex-col items-center gap-3 md:flex-row md:items-center">
+            <div className="h-36 w-36 rounded border border-gray-200 bg-white flex items-center justify-center">
+              <Image
+                src="/unnamed.png"
+                alt="Payment QR code"
+                width={144}
+                height={144}
+                className="h-36 w-36 object-contain"
+                priority
+              />
+            </div>
+            <div className="text-center md:text-left space-y-1">
+              <p className="text-sm text-gray-700 font-medium">Scan to pay</p>
+            </div>
+          </div>
+        </div>
+
         {/* Top Row: WhatsApp Button and Copy Address */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 mb-6">
           <button
             type="button"
             onClick={handleSendWhatsApp}
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700 transition-colors"
+            className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700 transition-colors w-full md:w-auto"
           >
             <MessageCircle className="h-4 w-4" />
             Send on WhatsApp
           </button>
-          <div className="flex-1 flex items-center gap-2">
+          <div className="flex flex-col gap-2 w-full md:flex-1 md:flex-row md:items-center md:gap-2">
             <input
               type="text"
               value={walletAddress}
               readOnly
-              className="flex-1 px-3 py-2 border border-gray-300 bg-gray-50 text-sm"
+              className="w-full md:flex-1 px-3 py-2 border border-gray-300 bg-gray-50 text-sm"
             />
             <button
               type="button"
               onClick={handleCopyAddress}
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700 transition-colors"
+              className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700 transition-colors w-full md:w-auto"
             >
               <Copy className="h-4 w-4" />
               {copied ? 'Copied!' : 'Copy Address'}

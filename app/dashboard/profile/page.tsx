@@ -101,7 +101,7 @@ export default function Profile() {
         <div className="lg:col-span-1">
           <div className="bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden">
             {/* Header with background */}
-            <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-600 relative">
+            <div className="h-32 bg-green-600 relative">
               <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=&quot;60&quot; height=&quot;60&quot; viewBox=&quot;0 0 60 60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cg fill=&quot;none&quot; fill-rule=&quot;evenodd&quot;%3E%3Cg fill=&quot;%23ffffff&quot; fill-opacity=&quot;0.1&quot;%3E%3Cpath d=&quot;M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4h2v4h4v2H8v4H6v-4H2v-2h4zM6 4V0h2v4h4v2H8v4H6V6H2V4h4z&quot;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
             </div>
 
@@ -116,7 +116,7 @@ export default function Profile() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-500 text-white text-4xl font-bold">
+                    <div className="h-full w-full flex items-center justify-center bg-green-600 text-white text-4xl font-bold">
                       {user?.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                   )}
@@ -150,7 +150,7 @@ export default function Profile() {
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={handleCopyLink}
-                  className="flex-1 flex items-center justify-center gap-2 bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 transition-colors"
                 >
                   <Copy className="h-4 w-4" />
                   Copy Link
@@ -322,7 +322,7 @@ export default function Profile() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-blue-600 text-white px-6 py-2 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-green-600 text-white px-6 py-2 font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? 'Updating...' : 'Update Profile'}
                 </button>

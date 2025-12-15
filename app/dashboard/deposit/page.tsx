@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContext';
-import { MessageCircle, Copy, Upload, ArrowUpCircle } from 'lucide-react';
+import { MessageCircle, Upload, ArrowUpCircle } from 'lucide-react';
 
 interface DepositRecord {
   srNo: number;
@@ -22,9 +22,7 @@ export default function Deposit() {
     amount: '',
     txnId: '',
   });
-  const [walletAddress] = useState('0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   // Mock deposit history - in real app, this would come from API
   const [depositHistory] = useState<DepositRecord[]>([
@@ -67,12 +65,6 @@ export default function Deposit() {
     if (file) {
       setFormData((prev) => ({ ...prev, receipt: file }));
     }
-  };
-
-  const handleCopyAddress = () => {
-    navigator.clipboard.writeText(walletAddress);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSendWhatsApp = () => {
@@ -162,7 +154,7 @@ export default function Deposit() {
           </div>
         </div>
 
-        {/* Top Row: WhatsApp Button and Copy Address */}
+        {/* Top Row: WhatsApp Button */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 mb-6">
           <button
             type="button"
@@ -172,22 +164,6 @@ export default function Deposit() {
             <MessageCircle className="h-4 w-4" />
             Send on WhatsApp
           </button>
-          <div className="flex flex-col gap-2 w-full md:flex-1 md:flex-row md:items-center md:gap-2">
-            <input
-              type="text"
-              value={walletAddress}
-              readOnly
-              className="w-full md:flex-1 px-3 py-2 border border-gray-300 bg-gray-50 text-sm"
-            />
-            <button
-              type="button"
-              onClick={handleCopyAddress}
-              className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700 transition-colors w-full md:w-auto"
-            >
-              <Copy className="h-4 w-4" />
-              {copied ? 'Copied!' : 'Copy Address'}
-            </button>
-          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

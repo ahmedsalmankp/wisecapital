@@ -243,19 +243,6 @@ export default function Profile() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      IFSC Code
-                    </label>
-                    <input
-                      type="text"
-                      name="ifscCode"
-                      value={formData.ifscCode}
-                      onChange={handleInputChange}
-                      placeholder="Enter IFSC code"
-                      className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
                 </div>
 
                 {/* Right Column */}
@@ -311,6 +298,20 @@ export default function Profile() {
                       value={formData.accountNumber}
                       onChange={handleInputChange}
                       placeholder="Enter account number"
+                      className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      IFSC Code
+                    </label>
+                    <input
+                      type="text"
+                      name="ifscCode"
+                      value={formData.ifscCode}
+                      onChange={handleInputChange}
+                      placeholder="Enter IFSC code"
                       className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>

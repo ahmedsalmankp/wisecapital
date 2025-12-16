@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../_contexts/AuthContext';
 import { Pencil, Copy, Share2 } from 'lucide-react';
 
 export default function Profile() {

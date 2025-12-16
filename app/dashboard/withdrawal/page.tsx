@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../_contexts/AuthContext';
 import { Wallet, ArrowDownCircle } from 'lucide-react';
 
 interface WithdrawalRecord {

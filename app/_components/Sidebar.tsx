@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../_contexts/AuthContext';
 import {
   LayoutDashboard,
   Wallet,

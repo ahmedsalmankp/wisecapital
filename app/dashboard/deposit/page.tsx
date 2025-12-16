@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../_contexts/AuthContext';
 import { MessageCircle, Upload, ArrowUpCircle } from 'lucide-react';
 
 interface DepositRecord {

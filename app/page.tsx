@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuth } from './contexts/AuthContext';
+import { useAuth } from './_contexts/AuthContext';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');

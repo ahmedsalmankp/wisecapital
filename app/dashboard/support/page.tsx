@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../_contexts/AuthContext';
 import { Send, Mail } from 'lucide-react';
 
 interface SupportTicket {

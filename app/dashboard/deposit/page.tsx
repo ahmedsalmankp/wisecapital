@@ -67,10 +67,12 @@ export default function Deposit() {
     }
   };
 
-  const handleSendWhatsApp = () => {
+  const handleSendTelegram = () => {
     const message = `Fund Request - Amount: ₹${formData.amount}, Txn ID: ${formData.txnId}`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(
+      ''
+    )}&text=${encodeURIComponent(message)}`;
+    window.open(telegramUrl, '_blank');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,7 +122,7 @@ export default function Deposit() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Deposit</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Deposit INR</h1>
         <p className="mt-1 text-sm text-gray-600">
           Request funds to be added to your account.
         </p>
@@ -154,15 +156,15 @@ export default function Deposit() {
           </div>
         </div>
 
-        {/* Top Row: WhatsApp Button */}
+        {/* Top Row: Telegram Button */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 mb-6">
           <button
             type="button"
-            onClick={handleSendWhatsApp}
+            onClick={handleSendTelegram}
             className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700 transition-colors w-full md:w-auto"
           >
             <MessageCircle className="h-4 w-4" />
-            Send on WhatsApp
+            Send on Telegram
           </button>
         </div>
 

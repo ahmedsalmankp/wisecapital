@@ -13,6 +13,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
   return (
     <div className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 lg:px-6">
+      <div className='ml-auto'>
       <button
         onClick={onMenuClick}
         className="lg:hidden p-2 text-gray-600 hover:bg-gray-100"
@@ -48,6 +49,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
             <User className="h-3.5 w-3.5" />
           </div>
         </Link>
+      </div>
       </div>
     </div>
   );

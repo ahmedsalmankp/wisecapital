@@ -15,7 +15,15 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Deposit', href: '/dashboard/deposit', icon: ArrowDownCircle },
+  {
+    name: 'Deposit',
+    icon: ArrowDownCircle,
+    children: [
+      { name: 'Deposit INR', href: '/dashboard/deposit' },
+      { name: 'Deposit USD', href: '/dashboard/deposit-usd' },
+      { name: 'Deposit Crypto', href: '/dashboard/deposit-crypto' },
+    ],
+  },
   { name: 'Withdrawal', href: '/dashboard/withdrawal', icon: Wallet },
   { name: 'Support', href: '/dashboard/support', icon: HelpCircle },
 ];
@@ -52,21 +60,64 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+
+          // Handle simple links
+          if (!item.children) {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={onClose}
+                className={`flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-green-600 text-white'
+                    : 'text-gray-700 hover:bg-green-200 hover:text-gray-900'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                {item.name}
+              </Link>
+            );
+          }
+
+          // Handle dropdown (Deposit)
+          const isParentActive = item.children.some(
+            (child) => child.href === pathname
+          );
+
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-green-600 text-white'
-                  : 'text-gray-700 hover:bg-green-200 hover:text-gray-900'
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              {item.name}
-            </Link>
+            <div key={item.name} className="space-y-1">
+              <div
+                className={`flex items-center gap-3 px-3 py-2 text-sm font-medium ${
+                  isParentActive
+                    ? 'bg-green-600 text-white'
+                    : 'text-gray-700'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.name}</span>
+              </div>
+              <div className="ml-8 space-y-1">
+                {item.children.map((child) => {
+                  const isActive = pathname === child.href;
+                  return (
+                    <Link
+                      key={child.name}
+                      href={child.href}
+                      onClick={onClose}
+                      className={`block px-3 py-1.5 text-sm ${
+                        isActive
+                          ? 'bg-green-500 text-white'
+                          : 'text-gray-700 hover:bg-green-200 hover:text-gray-900'
+                      }`}
+                    >
+                      {child.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>

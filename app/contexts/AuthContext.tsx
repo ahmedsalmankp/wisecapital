@@ -19,7 +19,11 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  /**
+   * For now we treat the first argument as a User ID,
+   * even though historically it was called "email".
+   */
+  login: (userId: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   isLoading: boolean;
@@ -58,21 +62,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Mock authentication - accept any credentials
-    // In a real app, this would make an API call
+  const login = async (userId: string, password: string): Promise<boolean> => {
+    // Mock authentication - accept any credentials.
+    // We now treat the first argument as a "User ID" (numeric string),
+    // and keep the demo user's name separate so we don't display the ID as the name.
     return new Promise((resolve) => {
       setTimeout(() => {
         const storedUser = localStorage.getItem('user');
         let mockUser: User;
-        
+
         if (storedUser) {
-          mockUser = { ...JSON.parse(storedUser), email };
+          const existingUser: User = JSON.parse(storedUser);
+          mockUser = {
+            ...existingUser,
+            userId, // update the userId to what was entered on the login screen
+          };
         } else {
           mockUser = {
-            name: email.split('@')[0] || 'User',
-            email: email,
-            userId: '4336294',
+            name: 'User',
+            email: '',
+            userId,
             sponsorId: '7291833',
             mobile: '',
             password: '••••••••••',
@@ -82,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             usdtAddress: '',
           };
         }
+
         setUser(mockUser);
         localStorage.setItem('user', JSON.stringify(mockUser));
         resolve(true);

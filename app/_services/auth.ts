@@ -7,6 +7,7 @@ export interface User {
   name: string;
   email: string;
   mobile: string;
+  password: string;
   sponsorId: string;
   bankName: string;
   accountNumber: string;
@@ -175,6 +176,7 @@ export async function loginUser(
       name: userDoc.name,
       email: userDoc.email,
       mobile: userDoc.mobile,
+      password: userDoc.password,
       sponsorId: userDoc.sponsorId || '',
       bankName: userDoc.bankName || '',
       accountNumber: userDoc.accountNumber || '',

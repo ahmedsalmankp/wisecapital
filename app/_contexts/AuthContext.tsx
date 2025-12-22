@@ -2,29 +2,12 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-
-interface User {
-  name: string;
-  email: string;
-  userId?: string;
-  sponsorId?: string;
-  mobile?: string;
-  password?: string;
-  bankName?: string;
-  accountNumber?: string;
-  ifscCode?: string;
-  usdtAddress?: string;
-  profileImage?: string;
-}
+import { loginUser, signOut, getCurrentUser, isAuthenticated, User } from '../_services/auth';
 
 interface AuthContextType {
   user: User | null;
-  /**
-   * For now we treat the first argument as a User ID,
-   * even though historically it was called "email".
-   */
-  login: (userId: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   isLoading: boolean;
 }
@@ -37,80 +20,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-    } else {
-      // Set default user data if not exists
-      const defaultUser: User = {
-        name: 'User',
-        email: '',
-        userId: '4336294',
-        sponsorId: '7291833',
-        mobile: '',
-        password: '••••••••••',
-        bankName: '',
-        accountNumber: '',
-        ifscCode: '',
-        usdtAddress: '',
-      };
-      setUser(defaultUser);
-      localStorage.setItem('user', JSON.stringify(defaultUser));
-    }
-    setIsLoading(false);
+    // Check if user is authenticated
+    const checkAuth = async () => {
+      try {
+        const authenticated = await isAuthenticated();
+        if (authenticated) {
+          const currentUser = await getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+            // Also store in localStorage for backward compatibility
+            localStorage.setItem('user', JSON.stringify(currentUser));
+          }
+        } else {
+          // Clear any stale data
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        // Clear any stale data
+        localStorage.removeItem('user');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAuth();
   }, []);
 
-  const login = async (userId: string, password: string): Promise<boolean> => {
-    // Mock authentication - accept any credentials.
-    // We now treat the first argument as a "User ID" (numeric string),
-    // and keep the demo user's name separate so we don't display the ID as the name.
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const storedUser = localStorage.getItem('user');
-        let mockUser: User;
-
-        if (storedUser) {
-          const existingUser: User = JSON.parse(storedUser);
-          mockUser = {
-            ...existingUser,
-            userId, // update the userId to what was entered on the login screen
-          };
-        } else {
-          mockUser = {
-            name: 'User',
-            email: '',
-            userId,
-            sponsorId: '7291833',
-            mobile: '',
-            password: '••••••••••',
-            bankName: '',
-            accountNumber: '',
-            ifscCode: '',
-            usdtAddress: '',
-          };
-        }
-
-        setUser(mockUser);
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        resolve(true);
-      }, 500);
-    });
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const result = await loginUser(email, password);
+      if (result.success && result.user) {
+        setUser(result.user);
+        // Also store in localStorage for backward compatibility
+        localStorage.setItem('user', JSON.stringify(result.user));
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
   const updateUser = (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
+      // Update both localStorage locations
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      localStorage.setItem('current_user', JSON.stringify(updatedUser));
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    router.push('/');
+  const logout = async () => {
+    try {
+      await signOut();
+      setUser(null);
+      localStorage.removeItem('user');
+      router.push('/');
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      // Still clear local state even if logout fails
+      setUser(null);
+      localStorage.removeItem('user');
+      router.push('/');
+    }
   };
 
   return (

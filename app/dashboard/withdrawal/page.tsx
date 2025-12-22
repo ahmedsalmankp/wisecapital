@@ -17,6 +17,8 @@ interface WithdrawalRecord {
 export default function Withdrawal() {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
+    fullname: user?.name || '',
+    companyId: '',
     amount: '',
     accountNumber: user?.accountNumber || '',
     ifsc: user?.ifscCode || '',
@@ -67,7 +69,7 @@ export default function Withdrawal() {
     setIsSubmitting(true);
 
     // Validate form
-    if (!formData.amount || !formData.accountNumber || !formData.ifsc) {
+    if (!formData.fullname || !formData.companyId || !formData.amount || !formData.accountNumber || !formData.ifsc) {
       alert('Please fill in all fields');
       setIsSubmitting(false);
       return;
@@ -90,6 +92,8 @@ export default function Withdrawal() {
     setTimeout(() => {
       alert('Withdrawal request submitted successfully!');
       setFormData({
+        fullname: user?.name || '',
+        companyId: '',
         amount: '',
         accountNumber: user?.accountNumber || '',
         ifsc: user?.ifscCode || '',
@@ -152,6 +156,36 @@ export default function Withdrawal() {
         </div>
 
         <form onSubmit={handleWithdraw} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Full Name
+            </label>
+            <input
+              type="text"
+              name="fullname"
+              value={formData.fullname}
+              onChange={handleInputChange}
+              placeholder="Enter full name"
+              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Company ID
+            </label>
+            <input
+              type="text"
+              name="companyId"
+              value={formData.companyId}
+              onChange={handleInputChange}
+              placeholder="Enter company ID"
+              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Amount

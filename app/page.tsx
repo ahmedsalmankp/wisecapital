@@ -19,15 +19,27 @@ export default function SignIn() {
     setError('');
     setIsLoading(true);
 
+    if (!email.trim()) {
+      setError('Email is required');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!password.trim()) {
+      setError('Password is required');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const success = await login(email, password);
       if (success) {
         router.push('/dashboard');
       } else {
-        setError('Invalid credentials');
+        setError('Invalid email or password. Please try again.');
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
+    } catch (err: any) {
+      setError(err?.message || 'An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -51,24 +63,21 @@ export default function SignIn() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label
-              htmlFor="userId"
+              htmlFor="email"
               className="block text-sm font-medium text-gray-700"
             >
-              User ID 
+              Email Address
             </label>
             <input
-              id="userId"
-              name="userId"
+              id="email"
+              name="email"
               type="text"
-              inputMode="numeric"
-              pattern="\d{7}"
-              maxLength={7}
-              autoComplete="off"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              placeholder="Enter your 7-digit User ID"
+              className="mt-1 block w-full border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+              placeholder="Enter your email address"
             />
           </div>
 
@@ -87,13 +96,13 @@ export default function SignIn() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              className="mt-1 block w-full border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
               placeholder="Enter your password"
             />
           </div>
 
           {error && (
-            <div className=" bg-red-50 p-3 text-sm text-red-600">
+            <div className="bg-red-50 p-3 text-sm text-red-600">
               {error}
             </div>
           )}
@@ -107,11 +116,8 @@ export default function SignIn() {
           </button>
         </form>
 
-        <div className="mt-6 space-y-2 text-center text-xs text-gray-500">
+        <div className="mt-6 text-center text-xs text-gray-600">
           <p>
-            Demo: Any User ID and password will work for now.
-          </p>
-          <p className="text-gray-600">
             Not registered yet?{' '}
             <Link
               href="/register"

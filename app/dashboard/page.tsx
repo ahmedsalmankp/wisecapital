@@ -1,4 +1,9 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Wallet, Gift, Users, TrendingUp } from 'lucide-react';
+import { useAuth } from '../_contexts/AuthContext';
+import { getTeamMembers, LevelData } from '../_services/teams';
 
 const stats = [
   {
@@ -32,6 +37,35 @@ const stats = [
 ];
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const [levels, setLevels] = useState<LevelData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTeamData = async () => {
+      if (user?.$id) {
+        setIsLoading(true);
+        try {
+          const teamData = await getTeamMembers(user.$id);
+          setLevels(teamData);
+        } catch (error) {
+          console.error('Error fetching team data:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchTeamData();
+  }, [user]);
+
+  // Calculate totals
+  const totalMembers = levels.reduce((sum, level) => sum + level.members.length, 0);
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return `₹${amount.toFixed(2)}`;
+  };
   return (
     <div className="space-y-6">
       <div>
@@ -86,37 +120,52 @@ export default function Dashboard() {
               <h2 className="text-lg font-semibold text-gray-900">My Team</h2>
               <Users className="h-5 w-5 text-green-600" />
             </div>
-            <div className="mt-6">
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Active Members
-                  </p>
-                  <p className="text-xs text-gray-500">Direct referrals</p>
-                </div>
-                <p className="text-lg font-semibold text-gray-900">24</p>
+            {isLoading ? (
+              <div className="mt-6 text-center py-4">
+                <p className="text-sm text-gray-500">Loading team data...</p>
               </div>
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Total Members
-                  </p>
-                  <p className="text-xs text-gray-500">All levels</p>
+            ) : (
+              <div className="mt-6 space-y-4">
+                {[1, 2, 3, 4].map((levelNum) => {
+                  const levelData = levels.find((l) => l.level === levelNum);
+                  const members = levelData?.members || [];
+                  const activeMembers = members.filter((m) => m.status === 'Active');
+                  const levelEarnings = levelData?.earnings || 0;
+                  
+                  return (
+                    <div
+                      key={levelNum}
+                      className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {levelNum} Level
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {activeMembers.length} active member{activeMembers.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      <p className="text-lg font-semibold text-green-600">
+                        {formatCurrency(levelEarnings)}
+                      </p>
+                    </div>
+                  );
+                })}
+                <div className="pt-3 mt-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        Total Members
+                      </p>
+                      <p className="text-xs text-gray-500">All levels</p>
+                    </div>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {totalMembers}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-lg font-semibold text-gray-900">156</p>
               </div>
-              <div className="flex items-center justify-between py-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Team Earnings
-                  </p>
-                  <p className="text-xs text-gray-500">This month</p>
-                </div>
-                <p className="text-lg font-semibold text-green-600">
-                  ₹4,250.00
-                </p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 

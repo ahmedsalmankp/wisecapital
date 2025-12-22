@@ -13,7 +13,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
   return (
     <div className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 lg:px-6">
-      <div className='ml-auto'>
+      
       <button
         onClick={onMenuClick}
         className="lg:hidden p-2 text-gray-600 hover:bg-gray-100"
@@ -21,7 +21,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         <Menu className="h-6 w-6" />
       </button>
       <div className="flex-1 lg:hidden"></div>
-      <div className="flex items-center gap-2 lg:gap-4">
+      <div className="flex items-center gap-2 lg:gap-4 ml-auto">
         <button className="relative p-2 text-gray-600 hover:bg-gray-100">
           <MessageSquare className="h-5 w-5" />
           <span className="absolute right-1 top-1 h-2 w-2 bg-red-500"></span>
@@ -50,7 +50,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           </div>
         </Link>
       </div>
-      </div>
+      
     </div>
   );
 }

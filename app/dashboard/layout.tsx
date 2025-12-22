@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ProtectedRoute } from '../components/ProtectedRoute';
-import { Sidebar } from '../components/Sidebar';
-import { Navbar } from '../components/Navbar';
+import { ProtectedRoute } from '../_components/ProtectedRoute';
+import { Sidebar } from '../_components/Sidebar';
+import { Navbar } from '../_components/Navbar';
 
 export default function DashboardLayout({
   children,

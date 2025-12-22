@@ -2,13 +2,13 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginUser, signOut, getCurrentUser, isAuthenticated, User } from '../_services/auth';
+import { loginUser, signOut, getCurrentUser, isAuthenticated, updateUserData, User } from '../_services/auth';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (userId: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  updateUser: (userData: Partial<User>) => void;
+  updateUser: (userData: Partial<User>) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -28,17 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const currentUser = await getCurrentUser();
           if (currentUser) {
             setUser(currentUser);
-            // Also store in localStorage for backward compatibility
-            localStorage.setItem('user', JSON.stringify(currentUser));
           }
         } else {
-          // Clear any stale data
-          localStorage.removeItem('user');
+          setUser(null);
         }
       } catch (error) {
         console.error('Auth check error:', error);
-        // Clear any stale data
-        localStorage.removeItem('user');
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -47,13 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (userId: string, password: string): Promise<boolean> => {
     try {
-      const result = await loginUser(email, password);
+      const result = await loginUser(userId, password);
       if (result.success && result.user) {
         setUser(result.user);
-        // Also store in localStorage for backward compatibility
-        localStorage.setItem('user', JSON.stringify(result.user));
         return true;
       }
       return false;
@@ -63,13 +57,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User>) => {
     if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      // Update both localStorage locations
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      localStorage.setItem('current_user', JSON.stringify(updatedUser));
+      try {
+        const updatedUser = await updateUserData(user.userId, userData);
+        if (updatedUser) {
+          setUser(updatedUser);
+        }
+      } catch (error) {
+        console.error('Update user error:', error);
+        // Optimistically update local state even if database update fails
+        const updatedUser = { ...user, ...userData };
+        setUser(updatedUser);
+      }
     }
   };
 
@@ -77,13 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signOut();
       setUser(null);
-      localStorage.removeItem('user');
       router.push('/');
     } catch (error: any) {
       console.error('Logout error:', error);
       // Still clear local state even if logout fails
       setUser(null);
-      localStorage.removeItem('user');
       router.push('/');
     }
   };

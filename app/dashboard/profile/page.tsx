@@ -47,10 +47,10 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const imageUrl = reader.result as string;
         setProfileImage(imageUrl);
-        updateUser({ profileImage: imageUrl });
+        await updateUser({ profileImage: imageUrl });
       };
       reader.readAsDataURL(file);
     }
@@ -60,12 +60,15 @@ export default function Profile() {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      updateUser(formData);
-      setIsSubmitting(false);
+    try {
+      await updateUser(formData);
       alert('Profile updated successfully!');
-    }, 500);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCopyLink = () => {
@@ -150,7 +153,7 @@ export default function Profile() {
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={handleCopyLink}
-                  className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 text-sm font-medium hover:bg-green-700 transition-colors"
                 >
                   <Copy className="h-4 w-4" />
                   Copy Link

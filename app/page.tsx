@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from './_contexts/AuthContext';
 
 export default function SignIn() {
-  const [email, setEmail] = useState('');
+  const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,8 +19,8 @@ export default function SignIn() {
     setError('');
     setIsLoading(true);
 
-    if (!email.trim()) {
-      setError('Email is required');
+    if (!userId.trim()) {
+      setError('User ID is required');
       setIsLoading(false);
       return;
     }
@@ -32,11 +32,11 @@ export default function SignIn() {
     }
 
     try {
-      const success = await login(email, password);
+      const success = await login(userId, password);
       if (success) {
         router.push('/dashboard');
       } else {
-        setError('Invalid email or password. Please try again.');
+        setError('Invalid User ID or password. Please try again.');
       }
     } catch (err: any) {
       setError(err?.message || 'An error occurred. Please try again.');
@@ -63,21 +63,21 @@ export default function SignIn() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label
-              htmlFor="email"
+              htmlFor="userId"
               className="block text-sm font-medium text-gray-700"
             >
-              Email Address
+              User ID
             </label>
             <input
-              id="email"
-              name="email"
+              id="userId"
+              name="userId"
               type="text"
-              autoComplete="email"
+              autoComplete="username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
               className="mt-1 block w-full border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
-              placeholder="Enter your email address"
+              placeholder="Enter your User ID"
             />
           </div>
 

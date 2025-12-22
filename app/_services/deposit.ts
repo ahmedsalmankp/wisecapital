@@ -81,7 +81,7 @@ export async function createDepositRequest(
     type,
     amount,
     txnId,
-    receipt: receipt ? receipt.name : null, // Store file name only (in production, upload to server)
+    receipt: receipt ? new File([], receipt.name) : null, // Create a File object with the name
     date: new Date().toISOString(),
     status: 'Pending',
   };

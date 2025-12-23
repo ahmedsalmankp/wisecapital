@@ -23,14 +23,21 @@ export default function Deposit() {
   const [generatedToken, setGeneratedToken] = useState<string>('');
   const [copiedField, setCopiedField] = useState<'id' | 'token' | null>(null);
 
-  // Load and filter deposit history from localStorage
+  // Load and filter deposit history from Appwrite
   useEffect(() => {
-    if (user?.userId) {
-      const allUserRequests = getDepositRequestsByUserId(user.userId);
-      // Filter by deposit type
-      const filtered = allUserRequests.filter(req => req.type === depositType);
-      setDepositHistory(filtered);
-    }
+    const loadDepositHistory = async () => {
+      if (user?.userId) {
+        try {
+          const allUserRequests = await getDepositRequestsByUserId(user.userId);
+          // Filter by deposit type
+          const filtered = allUserRequests.filter(req => req.type === depositType);
+          setDepositHistory(filtered);
+        } catch (error) {
+          console.error('Error loading deposit history:', error);
+        }
+      }
+    };
+    loadDepositHistory();
   }, [depositType, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,7 +104,7 @@ export default function Deposit() {
         setShowSuccessModal(true);
 
         // Refresh deposit history
-        const allUserRequests = getDepositRequestsByUserId(user.userId);
+        const allUserRequests = await getDepositRequestsByUserId(user.userId);
         const filtered = allUserRequests.filter(req => req.type === depositType);
         setDepositHistory(filtered);
 

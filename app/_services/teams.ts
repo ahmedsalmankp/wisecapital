@@ -69,10 +69,10 @@ function getReferralsByLevel(
 }
 
 // Calculate earnings for a user based on their approved deposits
-function calculateUserEarnings(userId: string): number {
+async function calculateUserEarnings(userId: string): Promise<number> {
   if (typeof window === 'undefined') return 0;
   
-  const deposits = getDepositRequests();
+  const deposits = await getDepositRequests();
   // Calculate earnings from approved deposits
   // Earnings = 5% of approved deposits (you can adjust this percentage)
   // Check both full userId and shortened userId (first 7 characters) for matching
@@ -99,15 +99,15 @@ function calculateUserEarnings(userId: string): number {
 }
 
 // Calculate total earnings for a level based on all active members' deposits
-function calculateLevelEarnings(
+async function calculateLevelEarnings(
   levelData: Array<TeamMember & { fullUserId: string }>
-): number {
+): Promise<number> {
   let totalEarnings = 0;
   
   for (const member of levelData) {
     // Only count earnings from active members
     if (member.status === 'Active') {
-      const earnings = calculateUserEarnings(member.fullUserId);
+      const earnings = await calculateUserEarnings(member.fullUserId);
       totalEarnings += earnings;
     }
   }
@@ -128,7 +128,7 @@ export async function getTeamMembers(
   // Build level 1 (direct referrals)
   const level1Data = getReferralsByLevel(currentUserId, allUsers, 1);
   const level1Members: TeamMember[] = level1Data.map(({ fullUserId, ...member }) => member);
-  const level1Earnings = calculateLevelEarnings(level1Data);
+  const level1Earnings = await calculateLevelEarnings(level1Data);
   levels.push({ level: 1, members: level1Members, earnings: level1Earnings });
 
   // Build level 2 (referrals of level 1 members)
@@ -138,7 +138,7 @@ export async function getTeamMembers(
     level2Data.push(...referrals);
   }
   const level2Members: TeamMember[] = level2Data.map(({ fullUserId, ...member }) => member);
-  const level2Earnings = calculateLevelEarnings(level2Data);
+  const level2Earnings = await calculateLevelEarnings(level2Data);
   levels.push({ level: 2, members: level2Members, earnings: level2Earnings });
 
   // Build level 3 (referrals of level 2 members)
@@ -148,7 +148,7 @@ export async function getTeamMembers(
     level3Data.push(...referrals);
   }
   const level3Members: TeamMember[] = level3Data.map(({ fullUserId, ...member }) => member);
-  const level3Earnings = calculateLevelEarnings(level3Data);
+  const level3Earnings = await calculateLevelEarnings(level3Data);
   levels.push({ level: 3, members: level3Members, earnings: level3Earnings });
 
   // Build level 4 (referrals of level 3 members)
@@ -158,7 +158,7 @@ export async function getTeamMembers(
     level4Data.push(...referrals);
   }
   const level4Members: TeamMember[] = level4Data.map(({ fullUserId, ...member }) => member);
-  const level4Earnings = calculateLevelEarnings(level4Data);
+  const level4Earnings = await calculateLevelEarnings(level4Data);
   levels.push({ level: 4, members: level4Members, earnings: level4Earnings });
 
   return levels;

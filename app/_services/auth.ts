@@ -142,11 +142,23 @@ export async function loginUser(
 ): Promise<{ success: boolean; user: User | null }> {
   try {
     // Find user by userId in database
-    const userQuery = await databases.listDocuments(
-      DATABASE_ID,
-      COLLECTION_ID,
-      [Query.equal('userId', userId)]
-    );
+    let userQuery;
+    try {
+      userQuery = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTION_ID,
+        [Query.equal('userId', userId)]
+      );
+    } catch (queryError: any) {
+      console.error('Error querying Users collection:', queryError);
+      if (queryError.code === 401) {
+        console.error('❌ 401 Unauthorized: Users collection permissions issue');
+        console.error('📝 Fix: Set READ permission for "any" role on Users collection');
+        console.error('   See USERS_COLLECTION_FIX.md for detailed instructions');
+        throw new Error('Login failed: Users collection permissions not configured. Please set READ permission for "any" role.');
+      }
+      throw queryError;
+    }
 
     if (userQuery.documents.length === 0) {
       return { success: false, user: null };

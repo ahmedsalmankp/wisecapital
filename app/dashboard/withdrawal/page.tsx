@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../_contexts/AuthContext';
 import { Wallet, ArrowDownCircle } from 'lucide-react';
+import { createWithdrawalRequest, getWithdrawalRequestsByUserId } from '../../_services/withdrawal';
 
 interface WithdrawalRecord {
   srNo: number;
@@ -24,40 +25,48 @@ export default function Withdrawal() {
     ifsc: user?.ifscCode || '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [withdrawalHistory, setWithdrawalHistory] = useState<WithdrawalRecord[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Mock available balance - in real app, this would come from API
   const availableBalance = 12500.00;
 
-  // Mock withdrawal history - in real app, this would come from API
-  const [withdrawalHistory] = useState<WithdrawalRecord[]>([
-    {
-      srNo: 1,
-      userId: user?.userId || '4336294',
-      amount: 5000,
-      payInr: 5000,
-      txnId: 'TXN123456789',
-      date: '2024-01-15',
-      status: 'Completed',
-    },
-    {
-      srNo: 2,
-      userId: user?.userId || '4336294',
-      amount: 3000,
-      payInr: 3000,
-      txnId: 'TXN987654321',
-      date: '2024-01-10',
-      status: 'Pending',
-    },
-    {
-      srNo: 3,
-      userId: user?.userId || '4336294',
-      amount: 2000,
-      payInr: 2000,
-      txnId: 'TXN456789123',
-      date: '2024-01-05',
-      status: 'Completed',
-    },
-  ]);
+  // Fetch withdrawal history from Appwrite
+  useEffect(() => {
+    const fetchWithdrawalHistory = async () => {
+      if (!user?.userId) {
+        setIsLoadingHistory(false);
+        return;
+      }
+
+      try {
+        setIsLoadingHistory(true);
+        const withdrawals = await getWithdrawalRequestsByUserId(user.userId);
+        
+        // Convert WithdrawalRequest[] to WithdrawalRecord[] with srNo
+        const records: WithdrawalRecord[] = withdrawals.map((withdrawal, index) => ({
+          srNo: index + 1,
+          userId: withdrawal.userId,
+          amount: withdrawal.amount,
+          payInr: withdrawal.payInr,
+          txnId: withdrawal.txnId,
+          date: withdrawal.date,
+          status: withdrawal.status,
+        }));
+        
+        setWithdrawalHistory(records);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching withdrawal history:', err);
+        setError('Failed to load withdrawal history. Please try again later.');
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchWithdrawalHistory();
+  }, [user?.userId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -67,39 +76,83 @@ export default function Withdrawal() {
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     // Validate form
     if (!formData.fullname || !formData.companyId || !formData.amount || !formData.accountNumber || !formData.ifsc) {
-      alert('Please fill in all fields');
+      setError('Please fill in all fields');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!user?.userId) {
+      setError('User not authenticated. Please login.');
       setIsSubmitting(false);
       return;
     }
 
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Please enter a valid amount');
+      setError('Please enter a valid amount');
       setIsSubmitting(false);
       return;
     }
 
     if (amount > availableBalance) {
-      alert('Insufficient balance');
+      setError('Insufficient balance');
       setIsSubmitting(false);
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      alert('Withdrawal request submitted successfully!');
-      setFormData({
-        fullname: user?.name || '',
-        companyId: '',
-        amount: '',
-        accountNumber: user?.accountNumber || '',
-        ifsc: user?.ifscCode || '',
-      });
+    // Validate IFSC code format (should be 11 characters)
+    if (formData.ifsc.length !== 11) {
+      setError('IFSC code must be 11 characters');
       setIsSubmitting(false);
-    }, 1000);
+      return;
+    }
+
+    try {
+      // Create withdrawal request in Appwrite
+      const result = await createWithdrawalRequest(
+        user.userId,
+        formData.fullname,
+        formData.companyId,
+        amount,
+        formData.accountNumber,
+        formData.ifsc.toUpperCase()
+      );
+
+      if (result.success) {
+        alert(`Withdrawal request submitted successfully!\nRequest ID: ${result.requestId}\nTransaction ID: ${result.txnId}`);
+        
+        // Reset form
+        setFormData({
+          fullname: user?.name || '',
+          companyId: '',
+          amount: '',
+          accountNumber: user?.accountNumber || '',
+          ifsc: user?.ifscCode || '',
+        });
+
+        // Refresh withdrawal history
+        const withdrawals = await getWithdrawalRequestsByUserId(user.userId);
+        const records: WithdrawalRecord[] = withdrawals.map((withdrawal, index) => ({
+          srNo: index + 1,
+          userId: withdrawal.userId,
+          amount: withdrawal.amount,
+          payInr: withdrawal.payInr,
+          txnId: withdrawal.txnId,
+          date: withdrawal.date,
+          status: withdrawal.status,
+        }));
+        setWithdrawalHistory(records);
+      }
+    } catch (err: any) {
+      console.error('Error creating withdrawal request:', err);
+      setError(err.message || 'Failed to submit withdrawal request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -154,6 +207,12 @@ export default function Withdrawal() {
             Member Withdrawal Request (INR)
           </h2>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleWithdraw} className="space-y-4">
           <div>
@@ -252,79 +311,85 @@ export default function Withdrawal() {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Withdrawal History
           </h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SR No.
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Pay INR
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    TxnID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {withdrawalHistory.length > 0 ? (
-                  withdrawalHistory.map((record) => (
-                    <tr key={record.srNo} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {record.srNo}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {record.userId}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ₹{record.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ₹{record.payInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {record.txnId}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {new Date(record.date).toLocaleDateString('en-IN', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={getStatusBadge(record.status)}>
-                          {record.status}
-                        </span>
+          {isLoadingHistory ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-gray-500">Loading withdrawal history...</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      SR No.
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      User ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pay INR
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      TxnID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {withdrawalHistory.length > 0 ? (
+                    withdrawalHistory.map((record) => (
+                      <tr key={record.srNo} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {record.srNo}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {record.userId}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ₹{record.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ₹{record.payInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {record.txnId}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {new Date(record.date).toLocaleDateString('en-IN', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={getStatusBadge(record.status)}>
+                            {record.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-6 py-4 text-center text-sm text-gray-500"
+                      >
+                        No withdrawal history found
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-6 py-4 text-center text-sm text-gray-500"
-                    >
-                      No withdrawal history found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

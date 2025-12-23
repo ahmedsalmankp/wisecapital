@@ -4,42 +4,14 @@ import { useState, useEffect } from 'react';
 import { Wallet, Gift, Users, TrendingUp } from 'lucide-react';
 import { useAuth } from '../_contexts/AuthContext';
 import { getTeamMembers, LevelData } from '../_services/teams';
-
-const stats = [
-  {
-    name: 'Main Wallet',
-    value: '₹12,450.00',
-    icon: Wallet,
-    color: 'bg-green-600',
-    change: '+12.5%',
-  },
-  {
-    name: 'Total Bonus',
-    value: '₹3,250.00',
-    icon: Gift,
-    color: 'bg-green-600',
-    change: '+8.2%',
-  },
-  {
-    name: 'Direct Bonus',
-    value: '₹1,850.00',
-    icon: TrendingUp,
-    color: 'bg-green-600',
-    change: '+5.1%',
-  },
-  {
-    name: 'Level Bonus',
-    value: '₹2,400.00',
-    icon: TrendingUp,
-    color: 'bg-green-600',
-    change: '+3.7%',
-  },
-];
+import { getOrCreateWallet, Wallet as WalletType } from '../_services/wallet';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [levels, setLevels] = useState<LevelData[]>([]);
+  const [wallet, setWallet] = useState<WalletType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [walletLoading, setWalletLoading] = useState(true);
 
   useEffect(() => {
     const fetchTeamData = async () => {
@@ -59,13 +31,63 @@ export default function Dashboard() {
     fetchTeamData();
   }, [user]);
 
+  useEffect(() => {
+    const fetchWalletData = async () => {
+      if (user?.userId) {
+        setWalletLoading(true);
+        try {
+          const walletData = await getOrCreateWallet(user.userId);
+          setWallet(walletData);
+        } catch (error) {
+          console.error('Error fetching wallet data:', error);
+        } finally {
+          setWalletLoading(false);
+        }
+      }
+    };
+
+    fetchWalletData();
+  }, [user]);
+
   // Calculate totals
   const totalMembers = levels.reduce((sum, level) => sum + level.members.length, 0);
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return `₹${amount.toFixed(2)}`;
+    return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
+
+  // Prepare stats from wallet data
+  const stats = [
+    {
+      name: 'Main Wallet',
+      value: wallet ? formatCurrency(wallet.mainWallet) : '₹0.00',
+      icon: Wallet,
+      color: 'bg-green-600',
+      change: '+12.5%', // TODO: Calculate actual change percentage
+    },
+    {
+      name: 'Total Bonus',
+      value: wallet ? formatCurrency(wallet.totalBonus) : '₹0.00',
+      icon: Gift,
+      color: 'bg-green-600',
+      change: '+8.2%', // TODO: Calculate actual change percentage
+    },
+    {
+      name: 'Direct Bonus',
+      value: wallet ? formatCurrency(wallet.directBonus) : '₹0.00',
+      icon: TrendingUp,
+      color: 'bg-green-600',
+      change: '+5.1%', // TODO: Calculate actual change percentage
+    },
+    {
+      name: 'Level Bonus',
+      value: wallet ? formatCurrency(wallet.levelBonus) : '₹0.00',
+      icon: TrendingUp,
+      color: 'bg-green-600',
+      change: '+3.7%', // TODO: Calculate actual change percentage
+    },
+  ];
   return (
     <div className="space-y-6">
       <div>
@@ -93,9 +115,15 @@ export default function Dashboard() {
                       <p className="text-sm font-medium text-gray-600">
                         {stat.name}
                       </p>
-                      <p className="mt-1 text-2xl font-semibold text-gray-900">
-                        {stat.value}
-                      </p>
+                      {walletLoading ? (
+                        <p className="mt-1 text-2xl font-semibold text-gray-400">
+                          Loading...
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-2xl font-semibold text-gray-900">
+                          {stat.value}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -168,16 +168,11 @@ export async function loginUser(
     const userEmail = userDoc.email;
 
     // Authenticate with Appwrite using email and password
+    // This creates the session automatically - no need to verify separately
     try {
       await account.createEmailPasswordSession(userEmail, password);
     } catch (error: any) {
       console.error('Appwrite authentication error:', error);
-      return { success: false, user: null };
-    }
-
-    // Get current Appwrite session to verify
-    const session = await account.getSession('current');
-    if (!session) {
       return { success: false, user: null };
     }
 
@@ -210,13 +205,34 @@ export async function loginUser(
 export async function getCurrentUser(): Promise<User | null> {
   try {
     // Check if there's an active Appwrite session
-    const session = await account.getSession('current');
+    // Handle 401 errors gracefully (no session exists)
+    let session;
+    try {
+      session = await account.getSession('current');
+    } catch (error: any) {
+      // If 401 or no session, return null gracefully
+      if (error.code === 401 || error.type === 'general_unauthorized_scope') {
+        return null;
+      }
+      throw error;
+    }
+    
     if (!session) {
       return null;
     }
 
     // Get the Appwrite user account
-    const appwriteUser = await account.get();
+    // Handle 401 errors gracefully
+    let appwriteUser;
+    try {
+      appwriteUser = await account.get();
+    } catch (error: any) {
+      // If 401 or unauthorized, return null gracefully
+      if (error.code === 401 || error.type === 'general_unauthorized_scope') {
+        return null;
+      }
+      throw error;
+    }
 
     // Find user document in database using Appwrite user ID
     try {
@@ -245,11 +261,19 @@ export async function getCurrentUser(): Promise<User | null> {
       };
 
       return user;
-    } catch (error) {
+    } catch (error: any) {
+      // Handle 401 errors gracefully
+      if (error.code === 401 || error.type === 'general_unauthorized_scope') {
+        return null;
+      }
       console.error('Error fetching user document:', error);
       return null;
     }
-  } catch (error) {
+  } catch (error: any) {
+    // Handle 401 errors gracefully
+    if (error.code === 401 || error.type === 'general_unauthorized_scope') {
+      return null;
+    }
     console.error('Get current user error:', error);
     return null;
   }
@@ -277,7 +301,12 @@ export async function isAuthenticated(): Promise<boolean> {
   try {
     const session = await account.getSession('current');
     return session !== null;
-  } catch (error) {
+  } catch (error: any) {
+    // Handle 401 errors gracefully (no session exists)
+    if (error.code === 401 || error.type === 'general_unauthorized_scope') {
+      return false;
+    }
+    // For other errors, also return false
     return false;
   }
 }

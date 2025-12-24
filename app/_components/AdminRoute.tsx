@@ -4,28 +4,53 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../_contexts/AuthContext';
 import { isAdmin } from '../_services/admin';
+import { getCurrentUser } from '../_services/auth';
 
 export function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, isLoading, checkAuth } = useAuth();
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
     const checkAdminAccess = async () => {
-      // First check if user is in context (must be logged in)
-      if (!user) {
-        router.push('/');
+      // Wait for initial auth check to complete
+      if (isLoading) {
         return;
       }
 
-      // Then verify admin status from database
+      // First check if user is in context or if there's an active session
+      let currentUser = user;
+      
+      if (!currentUser) {
+        // Check if there's an active Appwrite session
+        try {
+          currentUser = await getCurrentUser();
+          if (currentUser) {
+            // Session exists - update auth context
+            await checkAuth();
+          } else {
+            // No session - redirect to login
+            setIsChecking(false);
+            router.push('/');
+            return;
+          }
+        } catch (error) {
+          // No valid session
+          setIsChecking(false);
+          router.push('/');
+          return;
+        }
+      }
+
+      // At this point, we have a user (either from context or from session)
+      // Verify admin status from database - always fetch fresh, never cache
       try {
         const adminStatus = await isAdmin();
         if (adminStatus) {
           setIsAuthorized(true);
         } else {
-          // User is logged in but not admin - redirect to unauthorized or home
+          // User is logged in but not admin - redirect to home
           router.push('/');
         }
       } catch (error) {
@@ -37,10 +62,10 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
     };
 
     checkAdminAccess();
-  }, [user, router]);
+  }, [user, isLoading, router, checkAuth]);
 
   // Show loading state while checking
-  if (isChecking) {
+  if (isLoading || isChecking) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

@@ -16,6 +16,8 @@ export interface User {
   profileImage?: string;
   country?: string;
   sponsorName?: string;
+  isAdmin?: boolean;
+  status?: 'active' | 'blocked';
 }
 
 interface UserDocument {
@@ -33,6 +35,8 @@ interface UserDocument {
   ifscCode?: string;
   usdtAddress?: string;
   profileImage?: string;
+  isAdmin?: boolean;
+  status?: 'active' | 'blocked';
 }
 
 // Helper function to generate a user ID (first 4 digits of phone + 2 random digits)
@@ -177,6 +181,10 @@ export async function loginUser(
     }
 
     // Build user object from database document
+    // Handle isAdmin - ensure it's a boolean (Appwrite might return string "true"/"false")
+    const isAdminValue: any = userDoc.isAdmin;
+    const isAdmin = isAdminValue === true || isAdminValue === 'true' || isAdminValue === 1;
+    
     const user: User = {
       $id: userDoc.$id,
       userId: userDoc.userId,
@@ -192,6 +200,8 @@ export async function loginUser(
       profileImage: userDoc.profileImage,
       country: userDoc.country,
       sponsorName: userDoc.sponsorName,
+      isAdmin: isAdmin,
+      status: (userDoc.status as 'active' | 'blocked') || 'active',
     };
 
     return { success: true, user };
@@ -244,6 +254,10 @@ export async function getCurrentUser(): Promise<User | null> {
       ) as unknown as UserDocument;
 
       // Build user object
+      // Handle isAdmin - ensure it's a boolean
+      const isAdminValue: any = userDoc.isAdmin;
+      const isAdmin = isAdminValue === true || isAdminValue === 'true' || isAdminValue === 1;
+      
       const user: User = {
         $id: userDoc.$id,
         userId: userDoc.userId,
@@ -259,6 +273,8 @@ export async function getCurrentUser(): Promise<User | null> {
         profileImage: userDoc.profileImage,
         country: userDoc.country,
         sponsorName: userDoc.sponsorName,
+        isAdmin: isAdmin,
+        status: (userDoc.status as 'active' | 'blocked') || 'active',
       };
 
       return user;
@@ -338,6 +354,10 @@ export async function updateUserData(userId: string, updates: Partial<User>): Pr
     ) as unknown as UserDocument;
 
     // Build and return updated user object
+    // Handle isAdmin - ensure it's a boolean
+    const isAdminValue: any = updatedDoc.isAdmin;
+    const isAdmin = isAdminValue === true || isAdminValue === 'true' || isAdminValue === 1;
+    
     const user: User = {
       $id: updatedDoc.$id,
       userId: updatedDoc.userId,
@@ -353,6 +373,8 @@ export async function updateUserData(userId: string, updates: Partial<User>): Pr
       profileImage: updatedDoc.profileImage,
       country: updatedDoc.country,
       sponsorName: updatedDoc.sponsorName,
+      isAdmin: isAdmin,
+      status: (updatedDoc.status as 'active' | 'blocked') || 'active',
     };
 
     return user;

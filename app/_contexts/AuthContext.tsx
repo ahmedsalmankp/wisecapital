@@ -6,7 +6,7 @@ import { loginUser, signOut, getCurrentUser, updateUserData, User } from '../_se
 
 interface AuthContextType {
   user: User | null;
-  login: (userId: string, password: string) => Promise<boolean>;
+  login: (userId: string, password: string) => Promise<{ success: boolean; user: User | null }>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
   isLoading: boolean;
@@ -26,17 +26,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 1. After successful login (via login() function)
   // 2. When explicitly requested (e.g., accessing protected routes)
 
-  const login = async (userId: string, password: string): Promise<boolean> => {
+  const login = async (userId: string, password: string): Promise<{ success: boolean; user: User | null }> => {
     try {
       const result = await loginUser(userId, password);
       if (result.success && result.user) {
         setUser(result.user);
-        return true;
+        return { success: true, user: result.user };
       }
-      return false;
+      return { success: false, user: null };
     } catch (error: any) {
       console.error('Login error:', error);
-      return false;
+      return { success: false, user: null };
     }
   };
 

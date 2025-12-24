@@ -32,9 +32,25 @@ export default function SignIn() {
     }
 
     try {
-      const success = await login(userId, password);
-      if (success) {
-        router.push('/dashboard');
+      const result = await login(userId, password);
+      if (result.success && result.user) {
+        // Check admin status - handle both boolean true and string "true" cases
+        const isAdmin = result.user.isAdmin === true || result.user.isAdmin === 'true';
+        
+        // Debug log (remove in production if needed)
+        console.log('Login successful. User:', {
+          userId: result.user.userId,
+          isAdmin: result.user.isAdmin,
+          isAdminType: typeof result.user.isAdmin,
+          willRedirectTo: isAdmin ? '/admin/dashboard' : '/dashboard'
+        });
+        
+        // Redirect admins to admin dashboard, regular users to user dashboard
+        if (isAdmin) {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
         setError('Invalid User ID or password. Please try again.');
       }

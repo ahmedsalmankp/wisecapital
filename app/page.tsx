@@ -18,7 +18,7 @@ export default function SignIn() {
   useEffect(() => {
     if (!authLoading && user) {
       // User is logged in - redirect to appropriate dashboard
-      const isAdmin = user.isAdmin === true || user.isAdmin === 'true' || user.isAdmin === 1;
+      const isAdmin = user.isAdmin === true;
       router.push(isAdmin ? '/admin/dashboard' : '/dashboard');
     }
   }, [user, authLoading, router]);

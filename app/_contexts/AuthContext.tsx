@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginUser, signOut, getCurrentUser, isAuthenticated, updateUserData, User } from '../_services/auth';
+import { loginUser, signOut, getCurrentUser, updateUserData, User } from '../_services/auth';
 
 interface AuthContextType {
   user: User | null;

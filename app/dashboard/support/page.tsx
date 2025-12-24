@@ -3,18 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../_contexts/AuthContext';
 import { Send, Mail } from 'lucide-react';
-
-interface SupportTicket {
-  id: string;
-  userId: string;
-  name: string;
-  query: string;
-  subject: string;
-  description: string;
-  reply: string;
-  date: string;
-  status: 'pending' | 'replied' | 'resolved';
-}
+import { createSupportTicket, getSupportTicketsByUserId, SupportTicket } from '../../_services/support';
 
 export default function Support() {
   const { user } = useAuth();
@@ -25,14 +14,27 @@ export default function Support() {
   });
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Load tickets from localStorage
-    const storedTickets = localStorage.getItem('supportTickets');
-    if (storedTickets) {
-      setTickets(JSON.parse(storedTickets));
-    }
-  }, []);
+    const fetchTickets = async () => {
+      if (user?.userId) {
+        setIsLoading(true);
+        try {
+          const userTickets = await getSupportTicketsByUserId(user.userId);
+          setTickets(userTickets);
+        } catch (err) {
+          console.error('Error fetching tickets:', err);
+          setError('Failed to load support tickets.');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchTickets();
+  }, [user]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -43,46 +45,51 @@ export default function Support() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
     if (!formData.query || !formData.subject || !formData.message) {
-      alert('Please fill in all fields');
+      setError('Please fill in all fields');
+      return;
+    }
+
+    if (!user?.userId || !user?.name) {
+      setError('User information not available. Please login again.');
       return;
     }
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const newTicket: SupportTicket = {
-        id: `TKT-${Date.now()}`,
-        userId: user?.userId || 'N/A',
-        name: user?.name || 'User',
-        query: formData.query,
-        subject: formData.subject,
-        description: formData.message,
-        reply: '',
-        date: new Date().toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-        }),
-        status: 'pending',
-      };
+    try {
+      const result = await createSupportTicket(
+        user.userId,
+        user.name,
+        formData.query,
+        formData.subject,
+        formData.message
+      );
 
-      const updatedTickets = [newTicket, ...tickets];
-      setTickets(updatedTickets);
-      localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
+      if (result.success) {
+        // Refresh tickets list
+        const userTickets = await getSupportTicketsByUserId(user.userId);
+        setTickets(userTickets);
 
-      // Reset form
-      setFormData({
-        query: '',
-        subject: '',
-        message: '',
-      });
+        // Reset form
+        setFormData({
+          query: '',
+          subject: '',
+          message: '',
+        });
 
+        alert('Support ticket submitted successfully!');
+      } else {
+        setError('Failed to submit support ticket. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('Error submitting ticket:', err);
+      setError(err?.message || 'Failed to submit support ticket. Please try again.');
+    } finally {
       setIsSubmitting(false);
-      alert('Support ticket submitted successfully!');
-    }, 500);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -172,6 +179,12 @@ export default function Support() {
               />
             </div>
 
+            {error && (
+              <div className="bg-red-50 p-3 text-sm text-red-600 rounded">
+                {error}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isSubmitting}
@@ -192,7 +205,11 @@ export default function Support() {
             </span>
           </div>
 
-          {tickets.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">Loading tickets...</p>
+            </div>
+          ) : tickets.length === 0 ? (
             <div className="text-center py-12">
               <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">No support tickets yet</p>
@@ -233,7 +250,7 @@ export default function Support() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {tickets.map((ticket) => (
-                    <tr key={ticket.id} className="hover:bg-gray-50">
+                    <tr key={ticket.$id || ticket.ticketId} className="hover:bg-gray-50">
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                         {ticket.userId}
                       </td>
@@ -255,7 +272,11 @@ export default function Support() {
                         {ticket.reply || '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {ticket.date}
+                        {new Date(ticket.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {getStatusBadge(ticket.status)}

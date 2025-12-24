@@ -132,7 +132,11 @@ export function getReceiptUrl(fileId: string | undefined): string | null {
     return null;
   }
   const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1';
-  const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '6941a12d003dd956e13b';
+  const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '';
+  if (!projectId) {
+    console.warn('Appwrite project ID not configured. Cannot generate receipt URL.');
+    return null;
+  }
   return `${endpoint}/storage/buckets/${STORAGE_BUCKET_ID}/files/${fileId}/view?project=${projectId}`;
 }
 
@@ -208,8 +212,7 @@ export async function createDepositRequest(
     }
 
     // Create deposit request document in Appwrite
-    // Try creating with receiptFileId first, if it fails due to unknown attribute, retry without it
-    let depositDocument: any = {
+    const depositDocument: any = {
       requestId,
       token,
       userId,
@@ -221,30 +224,21 @@ export async function createDepositRequest(
       status: 'Pending' as const,
     };
 
-    // Store receipt information - prioritize receiptUrl since it exists in your collection
-    // Only include receiptFileId if we have it (it may not exist in collection, that's okay)
+    // Add receipt information if available (only include fields that exist in collection)
     if (receiptUrl) {
       depositDocument.receiptUrl = receiptUrl;
-      console.log('📝 Will store receiptUrl in document:', receiptUrl.substring(0, 50) + '...');
-    } else {
-      console.log('⚠️ No receiptUrl to store (file upload may have failed or no file provided)');
     }
-    
-    // Only include receiptFileId if we have it (collection may not have this attribute)
-    // If it causes an error, we'll remove it in the error handler
     if (receiptFileId) {
       depositDocument.receiptFileId = receiptFileId;
     }
 
     // Set document-level permissions if we have the user ID
-    // Note: Collection-level permissions should also be set in Appwrite Console
-    // for users() role to allow reading all documents
     const permissions = appwriteUserId
       ? [
           Permission.read(Role.user(appwriteUserId)),
           Permission.update(Role.user(appwriteUserId)),
         ]
-      : undefined; // Use collection-level permissions if no user ID
+      : undefined;
 
     // Verify user is authenticated before creating document
     try {
@@ -259,103 +253,32 @@ export async function createDepositRequest(
       console.warn('Could not verify session, proceeding anyway:', error);
     }
 
-    // Try to create document with receiptUrl (which exists in your collection)
-    // If receiptFileId causes issues, we'll remove it and retry
+    // Create document - if unknown attribute error occurs, retry without receipt fields
     try {
-      const createdDoc = await databases.createDocument(
+      await databases.createDocument(
         DATABASE_ID,
         DEPOSIT_COLLECTION_ID,
         ID.unique(),
         depositDocument,
-        permissions // Will use collection-level permissions if undefined
+        permissions
       );
       console.log('✅ Deposit request created successfully!');
-      console.log('   Document ID:', createdDoc.$id);
-      console.log('   Receipt URL stored:', createdDoc.receiptUrl || 'NULL (no receipt uploaded)');
     } catch (createError: any) {
-      // If error is due to unknown attribute, try removing the problematic attributes one by one
-      if (createError.message && createError.message.includes('Unknown attribute')) {
-        const errorMsg = createError.message.toLowerCase();
+      // If error is due to unknown receipt attribute, retry without receipt fields
+      if (createError.message?.toLowerCase().includes('unknown attribute') && 
+          (receiptUrl || receiptFileId)) {
+        console.warn('Receipt attribute not found in collection. Creating deposit without receipt info.');
+        const { receiptUrl: _, receiptFileId: __, ...documentWithoutReceipt } = depositDocument;
         
-        // Try removing receiptFileId first if that's the issue
-        if (errorMsg.includes('receiptfileid') && depositDocument.receiptFileId) {
-          console.warn('receiptFileId attribute not found. Trying with receiptUrl only...');
-          const { receiptFileId: _, ...documentWithoutFileId } = depositDocument;
-          
-          try {
-            await databases.createDocument(
-              DATABASE_ID,
-              DEPOSIT_COLLECTION_ID,
-              ID.unique(),
-              documentWithoutFileId,
-              permissions
-            );
-            console.log('Deposit created successfully with receiptUrl only.');
-            return {
-              success: true,
-              requestId,
-              token,
-            };
-          } catch (urlError: any) {
-            // If receiptUrl also fails, try without any receipt field
-            if (urlError.message && urlError.message.toLowerCase().includes('receipturl')) {
-              console.warn('receiptUrl attribute also not found. Creating deposit without receipt info.');
-              const { receiptUrl: __, ...documentWithoutReceipt } = documentWithoutFileId;
-              await databases.createDocument(
-                DATABASE_ID,
-                DEPOSIT_COLLECTION_ID,
-                ID.unique(),
-                documentWithoutReceipt,
-                permissions
-              );
-              console.warn('Deposit created but receipt was not stored. Add receiptFileId or receiptUrl attribute to collection.');
-            } else {
-              throw urlError;
-            }
-          }
-        } 
-        // Try removing receiptUrl if that's the issue
-        else if (errorMsg.includes('receipturl') && depositDocument.receiptUrl) {
-          console.warn('receiptUrl attribute not found. Trying with receiptFileId only...');
-          const { receiptUrl: _, ...documentWithoutUrl } = depositDocument;
-          
-          try {
-            await databases.createDocument(
-              DATABASE_ID,
-              DEPOSIT_COLLECTION_ID,
-              ID.unique(),
-              documentWithoutUrl,
-              permissions
-            );
-            console.log('Deposit created successfully with receiptFileId only.');
-            return {
-              success: true,
-              requestId,
-              token,
-            };
-          } catch (fileIdError: any) {
-            // If receiptFileId also fails, try without any receipt field
-            if (fileIdError.message && fileIdError.message.toLowerCase().includes('receiptfileid')) {
-              console.warn('receiptFileId attribute also not found. Creating deposit without receipt info.');
-              const { receiptFileId: __, ...documentWithoutReceipt } = documentWithoutUrl;
-              await databases.createDocument(
-                DATABASE_ID,
-                DEPOSIT_COLLECTION_ID,
-                ID.unique(),
-                documentWithoutReceipt,
-                permissions
-              );
-              console.warn('Deposit created but receipt was not stored. Add receiptFileId or receiptUrl attribute to collection.');
-            } else {
-              throw fileIdError;
-            }
-          }
-        } else {
-          // Re-throw other unknown attribute errors
-          throw createError;
-        }
+        await databases.createDocument(
+          DATABASE_ID,
+          DEPOSIT_COLLECTION_ID,
+          ID.unique(),
+          documentWithoutReceipt,
+          permissions
+        );
+        console.warn('Deposit created but receipt was not stored. Add receiptUrl or receiptFileId attribute to collection.');
       } else {
-        // Re-throw other errors
         throw createError;
       }
     }

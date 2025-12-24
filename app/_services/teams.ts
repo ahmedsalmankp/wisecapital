@@ -1,5 +1,7 @@
 import { User } from './auth';
 import { getDepositRequests } from './deposit';
+import { databases, DATABASE_ID, COLLECTION_ID } from './appwrite';
+import { Query } from 'appwrite';
 
 export interface TeamMember {
   userId: string;
@@ -15,19 +17,41 @@ export interface LevelData {
   earnings: number;
 }
 
-const USERS_STORAGE_KEY = 'demo_users';
+// Get all users from Appwrite database
+async function getAllUsers(): Promise<Record<string, User>> {
+  try {
+    if (!COLLECTION_ID) {
+      console.warn('Users collection ID not configured.');
+      return {};
+    }
 
-// Get all users from localStorage
-function getAllUsers(): Record<string, any> {
-  if (typeof window === 'undefined') return {};
-  const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
-  return usersJson ? JSON.parse(usersJson) : {};
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTION_ID
+    );
+
+    // Convert array to object keyed by userId for easier lookup
+    const usersMap: Record<string, User> = {};
+    response.documents.forEach((doc) => {
+      const user = doc as unknown as User;
+      if (user.userId) {
+        usersMap[user.userId] = user;
+        // Also index by $id for Appwrite document ID lookups
+        usersMap[user.$id] = user;
+      }
+    });
+
+    return usersMap;
+  } catch (error) {
+    console.error('Error fetching users from Appwrite:', error);
+    return {};
+  }
 }
 
 // Build referral tree - get all users referred by a specific user (direct and indirect)
 function getReferralsByLevel(
   currentUserId: string,
-  allUsers: Record<string, any>,
+  allUsers: Record<string, User>,
   level: number,
   maxLevel: number = 4
 ): Array<TeamMember & { fullUserId: string }> {
@@ -38,15 +62,21 @@ function getReferralsByLevel(
   // Find direct referrals (users whose sponsorId matches currentUserId)
   // Check both full userId and shortened userId for sponsorId matching
   for (const [userId, userData] of Object.entries(allUsers)) {
-    const shortenedUserId = userId.substring(0, 7);
+    // Skip if this is the Appwrite document ID ($id) and not the actual userId
+    if (userId === userData.$id && userId !== userData.userId) {
+      continue;
+    }
+
+    const shortenedUserId = userData.userId ? userData.userId.substring(0, 7) : '';
     const sponsorIdMatches =
       userData.sponsorId === currentUserId ||
-      userData.sponsorId === shortenedUserId;
+      userData.sponsorId === userData.userId?.substring(0, 7) ||
+      (userData.sponsorId && currentUserId && userData.sponsorId.substring(0, 7) === currentUserId.substring(0, 7));
 
-    if (sponsorIdMatches) {
+    if (sponsorIdMatches && userData.userId) {
       // Get package info (you can extend this based on your package system)
-      const packageName = userData.package || 'Basic';
-      const status: 'Active' | 'Inactive' = userData.status || 'Active';
+      const packageName = (userData as any).package || 'Basic';
+      const status: 'Active' | 'Inactive' = (userData as any).status || 'Active';
       
       // Display shortened sponsorId if it's a full userId
       let displaySponsorId = userData.sponsorId || '';
@@ -56,7 +86,7 @@ function getReferralsByLevel(
       
       referrals.push({
         userId: shortenedUserId, // Shortened user ID for display
-        fullUserId: userId, // Full user ID for internal tracking
+        fullUserId: userData.userId, // Full user ID for internal tracking
         name: userData.name || 'Unknown',
         package: packageName,
         sponsorId: displaySponsorId,
@@ -119,11 +149,18 @@ async function calculateLevelEarnings(
 export async function getTeamMembers(
   currentUserId: string
 ): Promise<LevelData[]> {
-  // Simulate async operation
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  const allUsers = getAllUsers();
+  const allUsers = await getAllUsers();
   const levels: LevelData[] = [];
+  
+  // If no users found, return empty levels
+  if (Object.keys(allUsers).length === 0) {
+    return [
+      { level: 1, members: [], earnings: 0 },
+      { level: 2, members: [], earnings: 0 },
+      { level: 3, members: [], earnings: 0 },
+      { level: 4, members: [], earnings: 0 },
+    ];
+  }
 
   // Build level 1 (direct referrals)
   const level1Data = getReferralsByLevel(currentUserId, allUsers, 1);

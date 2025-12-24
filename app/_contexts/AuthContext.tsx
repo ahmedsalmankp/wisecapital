@@ -16,32 +16,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Start as false - no initial check
   const router = useRouter();
 
-  useEffect(() => {
-    // Check if user is authenticated
-    const checkAuth = async () => {
-      try {
-        const authenticated = await isAuthenticated();
-        if (authenticated) {
-          const currentUser = await getCurrentUser();
-          if (currentUser) {
-            setUser(currentUser);
-          }
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    checkAuth();
-  }, []);
+  // REMOVED: Automatic auth check on page load
+  // This was causing 403/CORS errors in production by calling
+  // account.getSession('current') before a session exists.
+  // Auth will only be checked:
+  // 1. After successful login (via login() function)
+  // 2. When explicitly requested (e.g., accessing protected routes)
 
   const login = async (userId: string, password: string): Promise<boolean> => {
     try {

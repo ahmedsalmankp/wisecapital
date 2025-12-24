@@ -5,23 +5,20 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../_contexts/AuthContext';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    // Only redirect if user is not in context
+    // We do NOT call getCurrentUser() here to avoid 403/CORS errors
+    // User must log in to set the user in context
+    // This ensures /account/sessions/current is NEVER called before login
+    if (!user) {
       router.push('/');
     }
-  }, [user, isLoading, router]);
+  }, [user, router]);
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
-  }
-
+  // If no user, don't render (redirect will happen)
   if (!user) {
     return null;
   }

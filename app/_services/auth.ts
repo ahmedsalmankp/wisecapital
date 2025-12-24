@@ -205,13 +205,14 @@ export async function loginUser(
 export async function getCurrentUser(): Promise<User | null> {
   try {
     // Check if there's an active Appwrite session
-    // Handle 401 errors gracefully (no session exists)
+    // Handle 401/403 errors gracefully (no session exists)
+    // 403 is returned when no session exists and appears as CORS error
     let session;
     try {
       session = await account.getSession('current');
     } catch (error: any) {
-      // If 401 or no session, return null gracefully
-      if (error.code === 401 || error.type === 'general_unauthorized_scope') {
+      // If 401, 403, or no session, return null gracefully
+      if (error.code === 401 || error.code === 403 || error.type === 'general_unauthorized_scope') {
         return null;
       }
       throw error;
@@ -222,13 +223,13 @@ export async function getCurrentUser(): Promise<User | null> {
     }
 
     // Get the Appwrite user account
-    // Handle 401 errors gracefully
+    // Handle 401/403 errors gracefully
     let appwriteUser;
     try {
       appwriteUser = await account.get();
     } catch (error: any) {
-      // If 401 or unauthorized, return null gracefully
-      if (error.code === 401 || error.type === 'general_unauthorized_scope') {
+      // If 401, 403, or unauthorized, return null gracefully
+      if (error.code === 401 || error.code === 403 || error.type === 'general_unauthorized_scope') {
         return null;
       }
       throw error;
@@ -302,8 +303,9 @@ export async function isAuthenticated(): Promise<boolean> {
     const session = await account.getSession('current');
     return session !== null;
   } catch (error: any) {
-    // Handle 401 errors gracefully (no session exists)
-    if (error.code === 401 || error.type === 'general_unauthorized_scope') {
+    // Handle 401/403 errors gracefully (no session exists)
+    // 403 is returned when no session exists and appears as CORS error
+    if (error.code === 401 || error.code === 403 || error.type === 'general_unauthorized_scope') {
       return false;
     }
     // For other errors, also return false

@@ -231,12 +231,39 @@ const APPWRITE_WALLET_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_WALLET_CO
 const APPWRITE_STORAGE_BUCKET_ID = process.env.NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID || '';
 const APPWRITE_TRANSACTIONS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_TRANSACTIONS_COLLECTION_ID || '';
 
-// Initialize Appwrite client
-const client = new Client()
-  .setEndpoint(APPWRITE_ENDPOINT)
-  .setProject(APPWRITE_PROJECT_ID);
+// Get or create Appwrite client (lazy initialization)
+// This function ensures we always have a valid endpoint, even during SSR/build
+function createClient(): Client {
+  // Check if we're on the client side
+  const isClient = typeof window !== 'undefined';
+  
+  // During SSR/build or if env vars are missing/empty, use placeholder values
+  // This prevents "Invalid endpoint URL" errors during build
+  // Empty strings are treated as missing values
+  const hasValidEndpoint = APPWRITE_ENDPOINT && APPWRITE_ENDPOINT.trim() !== '';
+  const hasValidProjectId = APPWRITE_PROJECT_ID && APPWRITE_PROJECT_ID.trim() !== '';
+  
+  const endpoint = (isClient && hasValidEndpoint) 
+    ? APPWRITE_ENDPOINT 
+    : 'https://cloud.appwrite.io/v1';
+  
+  const projectId = (isClient && hasValidProjectId) 
+    ? APPWRITE_PROJECT_ID 
+    : 'ssr-placeholder';
+
+  return new Client()
+    .setEndpoint(endpoint)
+    .setProject(projectId);
+}
+
+// Initialize client and services
+// Using placeholder values during SSR prevents build errors
+// On the client side, the services will use the real endpoint from env vars
+const client = createClient();
 
 // Initialize services
+// These are safe because createClient() always returns a valid client
+// with a properly formatted endpoint URL
 export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);

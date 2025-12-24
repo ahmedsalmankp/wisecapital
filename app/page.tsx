@@ -35,7 +35,8 @@ export default function SignIn() {
       const result = await login(userId, password);
       if (result.success && result.user) {
         // Check admin status - handle both boolean true and string "true" cases
-        const isAdmin = result.user.isAdmin === true || result.user.isAdmin === 'true';
+        const isAdminValue: any = result.user.isAdmin;
+        const isAdmin = isAdminValue === true || isAdminValue === 'true' || isAdminValue === 1;
         
         // Debug log (remove in production if needed)
         console.log('Login successful. User:', {

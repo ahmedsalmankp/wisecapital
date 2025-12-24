@@ -172,12 +172,22 @@ export async function loginUser(
     const userEmail = userDoc.email;
 
     // Authenticate with Appwrite using email and password
-    // This creates the session automatically - no need to verify separately
+    // This creates the session automatically
     try {
       await account.createEmailPasswordSession(userEmail, password);
     } catch (error: any) {
       console.error('Appwrite authentication error:', error);
       return { success: false, user: null };
+    }
+
+    // Verify session by calling account.get() AFTER session creation
+    // This ensures the session is active and retrieves Appwrite user info
+    try {
+      await account.get();
+    } catch (error: any) {
+      console.error('Session verification error after login:', error);
+      // If verification fails, still return user from DB (session might be created but not immediately available)
+      // The user can still proceed, and session will be available on next request
     }
 
     // Build user object from database document
@@ -222,10 +232,15 @@ export async function getCurrentUser(): Promise<User | null> {
       session = await account.getSession('current');
     } catch (error: any) {
       // If 401, 403, or no session, return null gracefully
-      if (error.code === 401 || error.code === 403 || error.type === 'general_unauthorized_scope') {
+      // These are expected errors when no session exists - don't log them
+      if (error.code === 401 || error.code === 403 || error.type === 'general_unauthorized_scope' || error.message?.includes('401')) {
         return null;
       }
-      throw error;
+      // Only log unexpected errors
+      if (error.code && error.code !== 401 && error.code !== 403) {
+        console.error('Unexpected session error:', error);
+      }
+      return null;
     }
     
     if (!session) {
@@ -239,10 +254,15 @@ export async function getCurrentUser(): Promise<User | null> {
       appwriteUser = await account.get();
     } catch (error: any) {
       // If 401, 403, or unauthorized, return null gracefully
-      if (error.code === 401 || error.code === 403 || error.type === 'general_unauthorized_scope') {
+      // These are expected errors when no session exists - don't log them
+      if (error.code === 401 || error.code === 403 || error.type === 'general_unauthorized_scope' || error.message?.includes('401')) {
         return null;
       }
-      throw error;
+      // Only log unexpected errors
+      if (error.code && error.code !== 401 && error.code !== 403) {
+        console.error('Unexpected account error:', error);
+      }
+      return null;
     }
 
     // Find user document in database using Appwrite user ID
@@ -280,18 +300,26 @@ export async function getCurrentUser(): Promise<User | null> {
       return user;
     } catch (error: any) {
       // Handle 401 errors gracefully
-      if (error.code === 401 || error.type === 'general_unauthorized_scope') {
+      // These are expected errors when no session exists - don't log them
+      if (error.code === 401 || error.type === 'general_unauthorized_scope' || error.message?.includes('401')) {
         return null;
       }
-      console.error('Error fetching user document:', error);
+      // Only log unexpected errors
+      if (error.code && error.code !== 401 && error.code !== 403) {
+        console.error('Error fetching user document:', error);
+      }
       return null;
     }
   } catch (error: any) {
     // Handle 401 errors gracefully
-    if (error.code === 401 || error.type === 'general_unauthorized_scope') {
+    // These are expected errors when no session exists - don't log them
+    if (error.code === 401 || error.type === 'general_unauthorized_scope' || error.message?.includes('401')) {
       return null;
     }
-    console.error('Get current user error:', error);
+    // Only log unexpected errors
+    if (error.code && error.code !== 401 && error.code !== 403) {
+      console.error('Get current user error:', error);
+    }
     return null;
   }
 }

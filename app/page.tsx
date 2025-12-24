@@ -11,17 +11,18 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, user, isLoading: authLoading } = useAuth();
+  const { login, user } = useAuth();
   const router = useRouter();
 
-  // Redirect if user is already logged in
+  // Redirect if user is already logged in (only check user state, not authLoading)
+  // No session check on page load to prevent 401 errors
   useEffect(() => {
-    if (!authLoading && user) {
+    if (user) {
       // User is logged in - redirect to appropriate dashboard
       const isAdmin = user.isAdmin === true;
       router.push(isAdmin ? '/admin/dashboard' : '/dashboard');
     }
-  }, [user, authLoading, router]);
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

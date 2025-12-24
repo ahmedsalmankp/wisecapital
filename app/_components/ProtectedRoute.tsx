@@ -12,11 +12,6 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const verifyAuth = async () => {
-      // Wait for initial auth check to complete
-      if (isLoading) {
-        return;
-      }
-
       // If user is in context, allow access
       if (user) {
         return;
@@ -24,6 +19,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
       // If no user in context, check if there's an active Appwrite session
       // This handles cases where user refreshed the page and React state was lost
+      // Only check session on protected routes (not on login page)
       setIsChecking(true);
       try {
         const currentUser = await getCurrentUser();
@@ -33,7 +29,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
           return;
         }
       } catch (error) {
-        // No valid session
+        // No valid session - will redirect below
       } finally {
         setIsChecking(false);
       }
@@ -43,7 +39,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     };
 
     verifyAuth();
-  }, [user, isLoading, router, checkAuth]);
+  }, [user, router, checkAuth]);
 
   // Show loading state while checking
   if (isLoading || isChecking) {

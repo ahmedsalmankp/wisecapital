@@ -37,10 +37,32 @@ export default function Register() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatedUserId, setGeneratedUserId] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Simple static captcha like "4 + 3"
   const captchaQuestion = useMemo(() => '4 + 3 = ?', []);
   const captchaAnswer = 7;
+
+  // Helper function to generate a user ID (first 4 digits of phone + 2 random digits)
+  // Same logic as server-side generation
+  const generateUserId = (phone: string): string => {
+    const firstFour = phone.replace(/\D/g, '').slice(0, 4);
+    const randomTwo = Math.floor(10 + Math.random() * 90);
+    return `${firstFour}${randomTwo}`;
+  };
+
+  const handleCopyUserId = async () => {
+    if (generatedUserId) {
+      try {
+        await navigator.clipboard.writeText(generatedUserId);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
+  };
 
   const handleStep1Next = (e: FormEvent) => {
     e.preventDefault();
@@ -60,6 +82,10 @@ export default function Register() {
       setError('Password and Confirm Password do not match.');
       return;
     }
+
+    // Generate user ID when moving to step 2
+    const userId = generateUserId(mobile);
+    setGeneratedUserId(userId);
 
     // Move to next step
     setCurrentStep(2);
@@ -113,11 +139,9 @@ export default function Register() {
       );
       
       if (result.success && result.userId) {
-        setSuccess('Registration successful! You can now sign in with your credentials.');
-        // Redirect to sign-in after a short delay
-        setTimeout(() => {
-          router.push('/');
-        }, 2000);
+        setGeneratedUserId(result.userId);
+        setSuccess('Registration successful!');
+        // Don't redirect automatically - let user see their ID
       } else {
           setError('Registration failed. Please try again.');
       }
@@ -223,6 +247,42 @@ export default function Register() {
           </form>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Display generated User ID in step 2 */}
+            {generatedUserId && !success && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                <div className="text-xs font-semibold text-blue-800">
+                  Your User ID Preview
+                </div>
+                <div className="bg-white border border-blue-300 rounded p-3">
+                  <div className="text-xs font-medium text-gray-700 mb-2">
+                    Your User ID (will be confirmed after registration):
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 font-mono text-sm font-semibold text-gray-900 bg-gray-50 px-3 py-2 rounded border border-gray-300">
+                      {generatedUserId}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyUserId}
+                      className="px-3 py-2 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                    >
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                  <div className="text-xs font-medium text-yellow-800 flex items-start gap-2">
+                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span>
+                      <strong>Important:</strong> Please note your User ID. You will need it along with your password to sign in to your account. The final User ID will be confirmed after you complete registration.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label
@@ -352,28 +412,68 @@ export default function Register() {
               </div>
             )}
 
-            {success && (
-              <div className="bg-green-50 p-3 text-xs text-green-600">
-                {success}
+            {success && generatedUserId && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                <div className="text-xs font-semibold text-green-800">
+                  {success}
+                </div>
+                <div className="bg-white border border-green-300 rounded p-3">
+                  <div className="text-xs font-medium text-gray-700 mb-2">
+                    Your User ID:
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 font-mono text-sm font-semibold text-gray-900 bg-gray-50 px-3 py-2 rounded border border-gray-300">
+                      {generatedUserId}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyUserId}
+                      className="px-3 py-2 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                    >
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                  <div className="text-xs font-medium text-yellow-800 flex items-start gap-2">
+                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span>
+                      <strong>Important:</strong> Please save your User ID. You will need it along with your password to sign in to your account.
+                    </span>
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => router.push('/')}
+                    className="w-full bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                  >
+                    Continue to Sign In
+                  </button>
+                </div>
               </div>
             )}
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setCurrentStep(1)}
-                className="flex-1 bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-              >
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSubmitting ? 'Creating account...' : 'Register'}
-              </button>
-            </div>
+            {!generatedUserId && (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(1)}
+                  className="flex-1 bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmitting ? 'Creating account...' : 'Register'}
+                </button>
+              </div>
+            )}
           </form>
         )}
 

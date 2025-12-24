@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginUser, signOut, getCurrentUser, updateUserData, User } from '../_services/auth';
 
@@ -17,28 +17,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start as true - check session on mount
+  const [isLoading, setIsLoading] = useState(false); // Start as false - no session check on mount
   const router = useRouter();
 
-  // Check for existing Appwrite session on mount
-  // This restores user state if they have a valid session (e.g., after page refresh)
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-        }
-      } catch (error) {
-        // No session exists or error occurred - user is not logged in
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkSession();
-  }, []);
+  // REMOVED: Session check on mount to prevent 401 errors on page load
+  // Session will only be checked after successful login
 
   // Function to check auth state (can be called explicitly)
   const checkAuth = async () => {
@@ -56,21 +39,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (userId: string, password: string): Promise<{ success: boolean; user: User | null }> => {
     try {
-      // Create Appwrite session
+      // Create Appwrite session - loginUser handles session creation and verification
       const result = await loginUser(userId, password);
       if (result.success && result.user) {
-        // Verify session by calling account.get() to ensure session is active
-        // This ensures the session cookie is properly set
-        try {
-          const verifiedUser = await getCurrentUser();
-          if (verifiedUser) {
-            setUser(verifiedUser);
-            return { success: true, user: verifiedUser };
-          }
-        } catch (error) {
-          console.error('Session verification failed:', error);
-        }
-        // Fallback to result.user if verification fails
+        // Session is already created and verified in loginUser
+        // Just set the user state
         setUser(result.user);
         return { success: true, user: result.user };
       }

@@ -14,16 +14,12 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkAdminAccess = async () => {
-      // Wait for initial auth check to complete
-      if (isLoading) {
-        return;
-      }
-
       // First check if user is in context or if there's an active session
       let currentUser = user;
       
       if (!currentUser) {
         // Check if there's an active Appwrite session
+        // Only check session on protected routes (not on login page)
         try {
           currentUser = await getCurrentUser();
           if (currentUser) {
